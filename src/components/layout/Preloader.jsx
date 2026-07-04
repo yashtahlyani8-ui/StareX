@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-const LETTERS = ['F', 'R', 'E', 'S', 'H', 'D', 'R', 'O', 'P']
+const LETTERS = ['S', 'T', 'A', 'R', 'E', 'X']
 
 export default function Preloader({ onDone }) {
   const [progress, setProgress] = useState(0)
