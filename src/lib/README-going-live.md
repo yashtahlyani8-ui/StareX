@@ -1,77 +1,84 @@
-# StareX — how the app works & how to go fully live
+# StareX — going live
 
-## What works right now (today, no setup)
-
-The whole product is functional in the browser using a local data engine
-(`src/lib/store.js`) that persists to `localStorage` and updates the UI in
-real time (even across two browser tabs — open the owner console in one tab
-and a customer in another).
-
-**Customer side**
-- Sign up / log in (real accounts, validated email + password)
-- Book a pickup → creates a real order
-- Dashboard with live order tracking, stats, recent orders
-- My Orders (full history + filters + live status timeline)
-- Account (profile, saved addresses, laundry preferences)
-
-**Owner side (`/admin`)**
-- Incoming-orders queue with a live "N new" badge — this is how you know
-  an order arrived the moment it happens
-- Accept an order, then advance it through each stage
-  (Placed → Confirmed → Picked up → Washing → Folding → Out for delivery → Delivered)
-- Every status change instantly updates the customer's tracking view
-- KPIs (new / in-progress / today / revenue / customers / rating)
-- Customers list
-
-### Demo logins (on the login page: "Try it instantly")
-- **Owner:** `owner@starex.ca` / `starex2025`
-- **Customer:** `ava@example.com` / `password`
-
-To wipe demo data and start clean, run in the browser console:
-`localStorage.clear()` then refresh.
+Everything in the app is built and the code is **ready for the cloud**. What's
+left are the steps that need *your* accounts/passwords (I can't create those
+for you). Follow the checklist below — it's about 30–45 minutes total.
 
 ---
 
-## The one limitation
-
-`localStorage` lives in a single browser on a single device. So today, an
-order placed on a customer's phone won't appear on your laptop's owner
-console — each device has its own copy. That's fine for demos and testing,
-but to run the real business you need a shared cloud database so every
-device sees the same orders. That's the "go live" step below.
+## How the app decides local vs. cloud
+- **No `.env` keys →** runs in local (in-browser) mode. Great for demos.
+- **`.env` has Supabase keys →** automatically uses the shared cloud database,
+  with real accounts + real-time updates. No code changes needed; it flips
+  based on the env vars. (See `src/lib/store.js`, `store.local.js`, `store.supabase.js`.)
 
 ---
 
-## Going fully live (shared cloud database) — recommended: Supabase
+## Part A — Cloud database (Supabase) — makes orders shared across all devices
 
-Supabase gives you real accounts + a shared database + real-time updates,
-with a generous free tier. Because the whole app already talks to ONE file
-(`src/lib/store.js`), going live means swapping the inside of that file's
-functions for Supabase calls — no page or component has to change.
+1. Go to https://supabase.com → sign up (free) → **New project**. Pick a name
+   and a database password (save it). Wait ~2 min for it to provision.
+2. Open **SQL Editor** → New query → paste ALL of `supabase/schema.sql`
+   (in this repo) → **Run**. This creates the tables, security rules, and
+   real-time.
+3. Open **Project Settings → API** and copy two values:
+   - **Project URL**
+   - **anon public** key
+4. In the `freshdrop/` folder, copy `.env.example` to `.env` and paste them:
+   ```
+   VITE_SUPABASE_URL=...(Project URL)...
+   VITE_SUPABASE_ANON_KEY=...(anon public key)...
+   ```
+5. Restart the dev server (`npx vite`) or rebuild. The app is now on the cloud.
+6. Create your **owner account**: open the app → Sign up with the email you
+   want as owner (e.g. `owner@starex.ca`). Then back in Supabase **SQL Editor**
+   run:
+   ```sql
+   update public.profiles set role = 'owner' where email = 'owner@starex.ca';
+   ```
+   That one account can now see `/admin`. Everyone else is a customer.
 
-**Steps (about 30–45 min):**
-1. Create a free project at https://supabase.com
-2. Create two tables: `profiles` (id, name, email, phone, role, addresses jsonb, prefs jsonb)
-   and `orders` (all the fields you see in `createOrder` in `store.js`).
-3. Turn on Supabase Auth (email/password) — replaces `login` / `signup`.
-4. Install the client: `npm i @supabase/supabase-js`
-5. Rewrite the bodies of the functions in `store.js`
-   (`login`, `signup`, `createOrder`, `getAllOrders`, `advanceOrder`, etc.)
-   to call Supabase instead of `localStorage`. Use Supabase Realtime so the
-   owner console still updates the instant an order arrives.
-6. Add your Supabase URL + anon key to a `.env` file.
-
-I can do this whole step for you once you create the Supabase account and
-share the project URL + anon key (the anon key is safe to use in the app).
-
-**Then deploy** the site (Vercel or Netlify, free): connect the repo, it
-builds `freshdrop/`, and you're live at a real URL. Point your domain at it.
+> Note: in cloud mode Supabase emails a confirmation link on sign-up by default.
+> To skip that during setup: Supabase → Authentication → Providers → Email →
+> turn **Confirm email** off (turn it back on before real launch if you like).
 
 ---
 
-## Suggested "next features" (from competitors like Rinse, Cleanly, Poplin)
-- SMS/email notifications on each status change (Twilio / Resend)
-- Real payments at delivery (Stripe) instead of the current estimate
-- Subscription plans (weekly pickups) tied to the pricing page
-- Driver view (a stripped-down admin for the person doing pickups)
+## Part B — Put it on the internet (Vercel — free)
+
+The repo already has `vercel.json` (so page refreshes work) and a `.gitignore`.
+
+**Easiest (no terminal):**
+1. Push this `freshdrop/` folder to a new GitHub repo.
+2. Go to https://vercel.com → sign up → **Add New → Project** → import that repo.
+3. Framework preset: **Vite**. Build command `npm run build`, output `dist`.
+4. Add the two env vars (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) in the
+   Vercel project settings → **Deploy**.
+5. You get a live URL like `starex.vercel.app`. Add your own domain in
+   Vercel → Settings → Domains whenever you're ready.
+
+**Or via terminal:** `npm i -g vercel` then `vercel` in the `freshdrop/` folder,
+and add the env vars when prompted.
+
+Netlify works the same way (build `npm run build`, publish `dist`, add the two
+env vars; SPA redirects are handled by `vercel.json`'s equivalent — for Netlify
+add a `_redirects` file with `/*  /index.html  200`).
+
+---
+
+## What I can finish for you
+Once you've done **Part A steps 1–3** and paste me the Project URL + anon key
+(the anon key is safe to expose — it's meant for the browser), I'll:
+- wire the `.env`, run against your live database, and fix anything that
+  behaves differently on the cloud vs. local,
+- confirm the owner role + incoming-order realtime works end-to-end,
+- then walk you through the Vercel deploy.
+
+---
+
+## Nice next steps (competitor parity: Rinse / Cleanly / Poplin)
+- SMS/email on each status change (Twilio / Resend)
+- Real card payment at delivery (Stripe)
+- Weekly subscription plans
+- Driver view (a simplified admin for pickups)
 - Referral credits
