@@ -13,10 +13,6 @@ const perks = [
   { icon: Star, label: 'Loved by 10,000+ Canadians' },
 ]
 
-const demoBtn = {
-  flex: 1, padding: '9px 10px', borderRadius: 8, border: '1px solid #E4E4E7', background: '#fff',
-  cursor: 'pointer', fontFamily: 'Kodchasan, sans-serif', fontSize: '0.78rem', color: '#52525B', fontWeight: 500,
-}
 
 function FloatingInput({ label, type = 'text', value, onChange, placeholder, right }) {
   const [focused, setFocused] = useState(false)
@@ -232,18 +228,6 @@ export default function Login() {
             >
               Create a free account <ArrowRight size={14} />
             </Link>
-          </motion.div>
-
-          {/* Demo quick-access */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.66 }}
-            style={{ marginTop: 24, padding: '14px 16px', background: '#F7F7F7', borderRadius: 12 }}>
-            <p style={{ fontFamily: 'Kodchasan, sans-serif', fontSize: '0.72rem', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, marginBottom: 10 }}>Try it instantly</p>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" onClick={() => { setEmail('owner@starex.ca'); setPassword('starex2025') }}
-                style={demoBtn}>Fill owner login</button>
-              <button type="button" onClick={() => { setEmail('ava@example.com'); setPassword('password') }}
-                style={demoBtn}>Fill customer login</button>
-            </div>
           </motion.div>
         </div>
       </motion.div>
