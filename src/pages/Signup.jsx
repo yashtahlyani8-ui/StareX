@@ -37,6 +37,8 @@ export default function Signup() {
     const res = await signup({ name: form.name, email: form.email, password: form.password })
     setLoading(false)
     if (!res.ok) { toast(res.error, 'error'); return }
+    // If the project requires email confirmation, there's no session yet.
+    if (!res.user) { toast('Account created! Check your email to confirm, then sign in.', 'success'); navigate('/login'); return }
     toast('Account created — welcome!', 'success')
     navigate('/dashboard')
   }
