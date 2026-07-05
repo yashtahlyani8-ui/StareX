@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowRight, ArrowLeft, CheckCircle, Calendar, Clock, Shirt, Sparkles, Zap, Package } from 'lucide-react'
 import { createOrder, getCurrentUser } from '../lib/store'
+import { useAuth } from '../hooks/useStore'
+import { useToast } from '../components/ui/Toast'
 
 const ease = [0.25, 0.4, 0.25, 1]
 
@@ -28,25 +30,26 @@ const inputStyle = {
 
 export default function BookNow() {
   const navigate = useNavigate()
+  const toast = useToast()
+  const { user } = useAuth()
   const [step, setStep] = useState(0)
   const [direction, setDirection] = useState(1)
   const [form, setForm] = useState({ service: '', date: '', time: '', name: '', email: '', phone: '', address: '', notes: '' })
   const [errors, setErrors] = useState({})
   const [placedOrder, setPlacedOrder] = useState(null)
 
-  // Prefill from the logged-in account so returning customers book in seconds
+  // Prefill from the logged-in account (reactive — waits for the cloud session to hydrate)
   useEffect(() => {
-    const u = getCurrentUser()
-    if (u) {
+    if (user) {
       setForm(p => ({
         ...p,
-        name: p.name || u.name || '',
-        email: p.email || u.email || '',
-        phone: p.phone || u.phone || '',
-        address: p.address || u.addresses?.find(a => a.isDefault)?.line || u.addresses?.[0]?.line || '',
+        name: p.name || user.name || '',
+        email: p.email || user.email || '',
+        phone: p.phone || user.phone || '',
+        address: p.address || user.addresses?.find(a => a.isDefault)?.line || user.addresses?.[0]?.line || '',
       }))
     }
-  }, [])
+  }, [user])
 
   // Validation helpers
   const validateEmail = v => /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(v.trim())
@@ -83,13 +86,18 @@ export default function BookNow() {
 
   const handleSubmit = async () => {
     setDirection(1); setStep(4)
-    await new Promise(r => setTimeout(r, 1000))
-    const order = await createOrder({
-      ...form,
-      serviceTitle: selectedService?.title || 'Laundry',
-      price: selectedService?.est ?? null,
-    })
-    setPlacedOrder(order)
+    await new Promise(r => setTimeout(r, 800))
+    try {
+      const order = await createOrder({
+        ...form,
+        serviceTitle: selectedService?.title || 'Laundry',
+        price: selectedService?.est ?? null,
+      })
+      setPlacedOrder(order)
+    } catch (err) {
+      toast("We couldn't place your order just now. Please try again.", 'error')
+      setDirection(-1); setStep(3)
+    }
   }
 
   const canNext = [

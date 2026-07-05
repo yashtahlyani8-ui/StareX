@@ -140,8 +140,9 @@ export async function createOrder(data) {
     weight: data.weight || 'TBD', price: data.price ?? null, rating: null, isNew: true,
     createdAt: nowISO(), updatedAt: nowISO(),
   }
-  cache.orders = [order, ...cache.orders]; emit()          // optimistic
-  await supabase.from('orders').insert(toRow(order))
+  const { error } = await supabase.from('orders').insert(toRow(order))
+  if (error) throw new Error(error.message)
+  cache.orders = [order, ...cache.orders]; emit()          // reflect immediately (realtime also refreshes)
   return order
 }
 
